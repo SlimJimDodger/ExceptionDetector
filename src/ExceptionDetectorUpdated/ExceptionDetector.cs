@@ -8,6 +8,13 @@ using UnityEngine;
 
 namespace ExceptionDetectorUpdated
 {
+	// TODO
+	/// <summary>
+	///  split memory into scenes (dump into scene.log and load.log?)
+	///  choose what to show
+	///		-- > implies more sorting 
+	///	debug log switches make no sense anymore
+	/// </summary>
 	[KSPAddon(KSPAddon.Startup.Instantly, true)]
 	public class ExceptionDetectorUpdated : MonoBehaviour
 	{
@@ -51,6 +58,7 @@ namespace ExceptionDetectorUpdated
 		public static bool ShowInfoMessage { get; set; } = false;
 		#endregion
 
+		#region events
 		public void Awake()
 		{
 			Instance = this;
@@ -58,17 +66,25 @@ namespace ExceptionDetectorUpdated
 			Config.Load();
 			DontDestroyOnLoad(this);
 			Application.logMessageReceivedThreaded += HandleLogEntry;
+
+			// old gui
 			GUILayoutOption[] expandOptions = new GUILayoutOption[2];
 			expandOptions[0] = GUILayout.ExpandWidth(true);
 			expandOptions[1] = GUILayout.ExpandHeight(true);
+
 			kspDlls.Add("assembly-csharp-firstpass");
 			kspDlls.Add("assembly-csharp");
-			kspDlls.Add("kspassets.dll");
+			//kspDlls.Add("kspassets.dll");
 			//kspDlls.Add("kspcore.dll");
 			// kspDlls.Add("ksputil.dll");
 			unityDlls.Add("unityengine.dll");
-			unityDlls.Add("unityengine.networking.dll");
+			//unityDlls.Add("unityengine.networking.dll");
 			unityDlls.Add("unityengine.ui.dll");
+		}
+
+		protected void Start()
+		{
+			fiGui = gameObject.AddComponent<IssueGUI>();
 		}
 
 		public void OnDestroy()
@@ -83,54 +99,6 @@ namespace ExceptionDetectorUpdated
 			catch (Exception ex)
 			{
 				WriteLog(ex.ToString());
-			}
-		}
-
-		protected void Start()
-		{
-			fiGui = gameObject.AddComponent<IssueGUI>();
-		}
-
-		private void UpdateDisplayString()
-		{
-			if ((Time.realtimeSinceStartup - lastDisplayTime) > 0.2f)
-			{
-				lastDisplayTime = Time.realtimeSinceStartup;
-				if (throwTime.Count > 0)
-				{
-					//10 second average sampling
-					while (throwTime.Count > 0 && (throwTime.Peek() < (Time.realtimeSinceStartup - 10f)))
-					{
-						throwTime.Dequeue();
-					}
-					StringBuilder sb = new StringBuilder();
-					sb.Append("Throws per second: ");
-					sb.Append(throwTime.Count / 10f);
-					sb.AppendLine(" TPS.");
-					foreach (KeyValuePair<string, Dictionary<StackInfo, int>> dllEntry in methodThrows)
-					{
-						sb.AppendLine(dllEntry.Key);
-						foreach (KeyValuePair<StackInfo, int> methodThrowEntry in dllEntry.Value)
-						{
-							sb.Append("    ");
-							if (methodThrowEntry.Key.namespaceName != null)
-							{
-								sb.Append(methodThrowEntry.Key.namespaceName);
-								sb.Append(".");
-							}
-							sb.Append(methodThrowEntry.Key.className);
-							sb.Append(".");
-							sb.Append(methodThrowEntry.Key.methodName);
-							sb.Append(": ");
-							sb.AppendLine(methodThrowEntry.Value.ToString());
-						}
-					}
-					displayState = sb.ToString();
-				}
-				else
-				{
-					displayState = null;
-				}
 			}
 		}
 
@@ -149,33 +117,13 @@ namespace ExceptionDetectorUpdated
 					//Random number
 					//windowRect = GUILayout.Window(1660952404, windowRect, DrawMethod, "Exception Detector", expandOptions);
 				}
-			}catch(Exception ex)
+			}
+			catch (Exception ex)
 			{
 				WriteLog(ex.ToString());
 			}
 		}
-
-		private void DrawMethod(int windowID)
-		{
-			GUI.DragWindow();
-			GUILayout.Label(displayState);
-		}
-
-		private static void logTheMessage(string condition, string stackTrace, LogType logType)
-		{
-			if (ExceptionDetectorUpdated.FullLog)
-			{
-				if (condition != "\n") WriteLog("Condition:\t" + condition);
-				if (stackTrace != "\n") WriteLog("StackTrace:\t" + stackTrace + "\nLogType:\t" + logType);
-			}
-		}
-
-		private static void logTheMessage(string condition, string stackTrace, String name)
-		{
-			WriteLog("Condition:\t" + condition);
-			WriteLog("StackTrace:\t" + stackTrace);
-			WriteLog("\nLogType:\t" + name);
-		}
+		#endregion
 
 		public static void HandleLogEntry(string condition, string stackTrace, LogType logType)
 		{
@@ -184,13 +132,13 @@ namespace ExceptionDetectorUpdated
 			string stkMsg = String.Empty;
 			bool doublePass = CheckPass(condition, DoublePassValues);
 			bool singlePass = false;
-			if(!doublePass)
+			if (!doublePass)
 				singlePass = CheckPass(condition, SinglePassValues);
 
-			if (doublePass)
+			if (doublePass) // generally high level built-in modules of pattern msg 1: 'loading <name>' msg 2: 'failed message'    <--// note the lack of <name> on second message 
 			{
 				// WriteLog(stackTrace);
-				// save it
+				// save this string for the double-pass message to user - we need to append the next message if there is an error
 				preStack = condition;
 				if (logType != LogType.Log)
 					AddException(CleanCondition(condition));
@@ -243,7 +191,7 @@ namespace ExceptionDetectorUpdated
 				try
 				{
 					stkMsg = stackTrace;
-					if (!String.IsNullOrEmpty(condition) &&  ExceptionCount.ContainsKey(CleanCondition(condition)) && ExceptionCount[CleanCondition(condition)] > 20)
+					if (!String.IsNullOrEmpty(condition) && ExceptionCount.ContainsKey(CleanCondition(condition)) && ExceptionCount[CleanCondition(condition)] > 20)
 					{
 						ulong ct = ExceptionCount[CleanCondition(condition)];
 						stkMsg = "Exception has been called " + ++ct + " times";
@@ -307,7 +255,6 @@ namespace ExceptionDetectorUpdated
 
 		private static void AddException(String strMessage)
 		{
-
 			if (!String.IsNullOrEmpty(strMessage))
 			{
 				if (ExceptionCount.ContainsKey(strMessage))
@@ -354,6 +301,7 @@ namespace ExceptionDetectorUpdated
 			return retVal;
 		}
 
+		// old method, not working right all the time
 		public static StackInfo GetStackInfo(string stackLine)
 		{
 
@@ -442,13 +390,15 @@ namespace ExceptionDetectorUpdated
 
 				unknownVal.methodName = methodName;
 				classCache.Add(stackLine, unknownVal);
-			}catch(Exception ex)
+			}
+			catch (Exception ex)
 			{
 				retVal = unknownVal;
 			}
 			return retVal;
 		}
 
+		#region log
 		public static void WriteLog(string strMessage)
 		{
 			if (!String.IsNullOrEmpty(strMessage))
@@ -473,6 +423,73 @@ namespace ExceptionDetectorUpdated
 			objStreamWriter.Close();
 			objFilestream.Close();
 		}
+
+		private static void logTheMessage(string condition, string stackTrace, LogType logType)
+		{
+			if (ExceptionDetectorUpdated.FullLog)
+			{
+				if (condition != "\n") WriteLog("Condition:\t" + condition);
+				if (stackTrace != "\n") WriteLog("StackTrace:\t" + stackTrace + "\nLogType:\t" + logType);
+			}
+		}
+
+		private static void logTheMessage(string condition, string stackTrace, String name)
+		{
+			WriteLog("Condition:\t" + condition);
+			WriteLog("StackTrace:\t" + stackTrace);
+			WriteLog("\nLogType:\t" + name);
+		}
+		#endregion
+
+		private void DrawMethod(int windowID)
+		{
+			GUI.DragWindow();
+			GUILayout.Label(displayState);
+		}
+
+		private void UpdateDisplayString()
+		{
+			if ((Time.realtimeSinceStartup - lastDisplayTime) > 0.2f)
+			{
+				lastDisplayTime = Time.realtimeSinceStartup;
+				if (throwTime.Count > 0)
+				{
+					//10 second average sampling
+					while (throwTime.Count > 0 && (throwTime.Peek() < (Time.realtimeSinceStartup - 10f)))
+					{
+						throwTime.Dequeue();
+					}
+					StringBuilder sb = new StringBuilder();
+					sb.Append("Throws per second: ");
+					sb.Append(throwTime.Count / 10f);
+					sb.AppendLine(" TPS.");
+					foreach (KeyValuePair<string, Dictionary<StackInfo, int>> dllEntry in methodThrows)
+					{
+						sb.AppendLine(dllEntry.Key);
+						foreach (KeyValuePair<StackInfo, int> methodThrowEntry in dllEntry.Value)
+						{
+							sb.Append("    ");
+							if (methodThrowEntry.Key.namespaceName != null)
+							{
+								sb.Append(methodThrowEntry.Key.namespaceName);
+								sb.Append(".");
+							}
+							sb.Append(methodThrowEntry.Key.className);
+							sb.Append(".");
+							sb.Append(methodThrowEntry.Key.methodName);
+							sb.Append(": ");
+							sb.AppendLine(methodThrowEntry.Value.ToString());
+						}
+					}
+					displayState = sb.ToString();
+				}
+				else
+				{
+					displayState = null;
+				}
+			}
+		}
+
 	}
 
 	public class StackInfo

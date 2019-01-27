@@ -1,0 +1,14 @@
+$(ProjectDir)..\..\..\pdb2mdb\pdb2mdb.exe $(TargetPath)
+if not exist $(ProjectDir)..\..\GameData mkdir $(ProjectDir)..\..\GameData
+if not exist $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated mkdir $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated 
+if not exist $(TargetDir)Log mkdir $(TargetDir)Log
+if not exist $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated mkdir $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated
+
+copy /y $(TargetDir) $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated 
+copy /y $(ProjectDir)..\LICENSE.md $(TargetDir)
+copy /y $(ProjectDir)..\UNLICENSE $(TargetDir)
+copy /y $(ProjectDir)..\README.md $(TargetDir)
+copy /y $(ProjectDir)..\CHANGES.txt $(TargetDir) 
+
+xcopy /E /I /y $(TargetDir)* $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated
+xcopy /E /I /y $(TargetDir)* $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated

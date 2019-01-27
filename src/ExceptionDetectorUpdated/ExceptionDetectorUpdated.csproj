@@ -32,10 +32,12 @@
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\..\..\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\..\..\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -44,28 +46,34 @@
     <Compile Include="GUI\IssueGUI.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ExceptionDetectorUpdated.version" />
-    <None Include="settings.cfg" />
+    <None Include="ExceptionDetectorUpdated.version">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="settings.cfg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="icons\edu.png" />
     <Content Include="icons\edu_large.png" />
     <Content Include="icons\edu_small.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>$(ProjectDir)..\..\..\pdb2mdb\pdb2mdb.exe $(TargetPath)
-copy /y $(TargetDir)ExceptionDetector* $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\ 
+if not exist $(ProjectDir)..\..\GameData mkdir $(ProjectDir)..\..\GameData
+if not exist $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated mkdir $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated 
+if not exist $(TargetDir)Log mkdir $(TargetDir)Log
+if not exist $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated mkdir $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated
 
-copy /y $(ProjectDir)settings.cfg $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\
-copy /y $(ProjectDir)..\LICENSE.md $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\
-copy /y $(ProjectDir)..\UNLICENSE $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\
-copy /y $(ProjectDir)..\README.md $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\
-copy /y $(ProjectDir)..\CHANGES.txt $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\
-copy /y $(ProjectDir)ExceptionDetectorUpdated.version $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\
+copy /y $(TargetDir) $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated 
+copy /y $(ProjectDir)..\LICENSE.md $(TargetDir)
+copy /y $(ProjectDir)..\UNLICENSE $(TargetDir)
+copy /y $(ProjectDir)..\README.md $(TargetDir)
+copy /y $(ProjectDir)..\CHANGES.txt $(TargetDir) 
 
-if not exist "$(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\Log" mkdir "$(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated\Log"
-
-xcopy /E /I /y "$(ProjectDir)..\..\..\GameData" "$(ProjectDir)..\..\GameData"</PostBuildEvent>
+xcopy /E /I /y $(TargetDir)* $(ProjectDir)..\..\GameData\ExceptionDetectorUpdated
+xcopy /E /I /y $(TargetDir)* $(ProjectDir)..\..\..\GameData\ExceptionDetectorUpdated</PostBuildEvent>
   </PropertyGroup>
 </Project>
